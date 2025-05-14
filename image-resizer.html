@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Resizer</title>
+    <style>
+        :root {
+            --primary-color: #007bff; /* Bright Blue */
+            --primary-hover-color: #0056b3;
+            --secondary-color: #ffffff; /* White */
+            --text-color: #333333;
+            --light-gray: #f0f0f0;
+            --border-color: #e0e0e0;
+            --error-color: #dc3545;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top if content overflows */
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--secondary-color);
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px; /* Max width for the tool */
+            box-sizing: border-box;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .tool-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .tool-header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .image-resizer-tool section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .image-resizer-tool section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+
+        .upload-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 500;
+            border: none;
+            outline: none;
+        }
+
+        .upload-button svg {
+            margin-right: 8px;
+        }
+
+        .upload-button:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        .file-name-display {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+            word-break: break-all;
+        }
+
+        .dimension-inputs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* Each input group takes equal space */
+            margin-bottom: 15px;
+        }
+        .aspect-ratio-group {
+            flex-direction: row;
+            align-items: center;
+        }
+        .aspect-ratio-group input[type="checkbox"] {
+            margin-right: 8px;
+            accent-color: var(--primary-color); /* Style checkbox color */
+        }
+
+
+        .input-group label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .input-group input[type="number"],
+        .input-group select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .input-group input[type="number"]:focus,
+        .input-group select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .preview-section h2 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .image-preview-container {
+            width: 100%;
+            max-height: 300px; /* Max height for preview */
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Important for containing the image */
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 100%; /* Ensure it fits within the container */
+            object-fit: contain; /* Scales image while maintaining aspect ratio */
+            display: none; /* Hidden until an image is loaded */
+        }
+
+        .action-button {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        .action-button:hover:not(:disabled) {
+            background-color: var(--primary-hover-color);
+        }
+
+        .action-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px 15px;
+            }
+            .dimension-inputs {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .tool-header h1 {
+                font-size: 1.8em;
+            }
+            .upload-button, .action-button {
+                font-size: 0.95em;
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="tool-header">
+            <h1>Image Resizer</h1>
+            <p>Upload, resize, and download your images with ease.</p>
+        </header>
+
+        <main class="image-resizer-tool">
+            <section class="upload-section">
+                <input type="file" id="imageUpload" accept="image/jpeg, image/png, image/gif, image/webp" hidden>
+                <label for="imageUpload" class="upload-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <span>Choose Image</span>
+                </label>
+                <p id="fileName" class="file-name-display"></p>
+            </section>
+
+            <section class="controls-section" style="display: none;">
+                <div class="dimension-inputs">
+                    <div class="input-group">
+                        <label for="newWidth">Width (px):</label>
+                        <input type="number" id="newWidth" min="1" placeholder="e.g., 800">
+                    </div>
+                    <div class="input-group">
+                        <label for="newHeight">Height (px):</label>
+                        <input type="number" id="newHeight" min="1" placeholder="e.g., 600">
+                    </div>
+                </div>
+                <div class="input-group aspect-ratio-group">
+                    <input type="checkbox" id="maintainAspectRatio" checked>
+                    <label for="maintainAspectRatio">Maintain Aspect Ratio</label>
+                </div>
+                 <p class="info-text">Original: <span id="originalDimensions">N/A</span></p>
+            </section>
+
+            <section class="preview-section" style="display: none;">
+                <h2>Preview</h2>
+                <div class="image-preview-container">
+                    <img id="imagePreview" src="#" alt="Image Preview">
+                </div>
+                <p class="info-text">Resized: <span id="resizedDimensions">N/A</span> (approx.)</p>
+            </section>
+
+            <section class="download-section" style="display: none;">
+                <div class="input-group">
+                    <label for="outputFormat">Output Format:</label>
+                    <select id="outputFormat">
+                        <option value="image/png">PNG</option>
+                        <option value="image/jpeg">JPEG</option>
+                        <option value="image/webp">WEBP</option>
+                        <!-- <option value="original">Original Format</option> -->
+                    </select>
+                </div>
+                <button id="downloadButton" class="action-button" disabled>Download Resized Image</button>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('imageUpload');
+            const fileNameDisplay = document.getElementById('fileName');
+            const newWidthInput = document.getElementById('newWidth');
+            const newHeightInput = document.getElementById('newHeight');
+            const maintainAspectRatioCheckbox = document.getElementById('maintainAspectRatio');
+            const imagePreview = document.getElementById('imagePreview');
+            const downloadButton = document.getElementById('downloadButton');
+            const outputFormatSelect = document.getElementById('outputFormat');
+
+            const controlsSection = document.querySelector('.controls-section');
+            const previewSection = document.querySelector('.preview-section');
+            const downloadSection = document.querySelector('.download-section');
+            const originalDimensionsDisplay = document.getElementById('originalDimensions');
+            const resizedDimensionsDisplay = document.getElementById('resizedDimensions');
+
+            let originalImage = null;
+            let originalWidth = 0;
+            let originalHeight = 0;
+            let originalType = 'image/png'; // Default, will be updated
+            let originalFileName = 'resized-image';
+
+            imageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    originalFileName = file.name.split('.')[0]; // Get filename without extension
+                    originalType = file.type;
+
+                    // Set default output format to original, if possible
+                    const availableFormats = Array.from(outputFormatSelect.options).map(opt => opt.value);
+                    if (availableFormats.includes(originalType)) {
+                        outputFormatSelect.value = originalType;
+                    } else if (originalType.startsWith("image/")) {
+                        // If it's an image but not in our list, default to PNG
+                        outputFormatSelect.value = 'image/png';
+                    }
+
+
+                    fileNameDisplay.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        originalImage = new Image();
+                        originalImage.onload = () => {
+                            originalWidth = originalImage.width;
+                            originalHeight = originalImage.height;
+
+                            originalDimensionsDisplay.textContent = `${originalWidth} x ${originalHeight} px`;
+                            newWidthInput.value = originalWidth;
+                            newHeightInput.value = originalHeight;
+
+                            updatePreview(); // Initial preview with original dimensions
+                            
+                            // Show hidden sections
+                            controlsSection.style.display = 'block';
+                            previewSection.style.display = 'block';
+                            downloadSection.style.display = 'block';
+                            imagePreview.style.display = 'block';
+                            downloadButton.disabled = false;
+                        };
+                        originalImage.src = e.target.result;
+                        imagePreview.src = e.target.result; // Show original temporarily
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    resetTool();
+                }
+            });
+
+            function resetTool() {
+                originalImage = null;
+                originalWidth = 0;
+                originalHeight = 0;
+                fileNameDisplay.textContent = '';
+                originalDimensionsDisplay.textContent = 'N/A';
+                resizedDimensionsDisplay.textContent = 'N/A';
+                newWidthInput.value = '';
+                newHeightInput.value = '';
+                imagePreview.src = '#';
+                imagePreview.style.display = 'none';
+                downloadButton.disabled = true;
+
+                controlsSection.style.display = 'none';
+                previewSection.style.display = 'none';
+                downloadSection.style.display = 'none';
+                // Consider also resetting outputFormatSelect.value if desired
+            }
+
+            function updateDimensions(changedInput) {
+                if (!originalImage || !maintainAspectRatioCheckbox.checked) {
+                    updatePreview(); // Still update preview even if aspect ratio not maintained
+                    return;
+                }
+
+                const aspectRatio = originalWidth / originalHeight;
+                let targetWidth = parseInt(newWidthInput.value);
+                let targetHeight = parseInt(newHeightInput.value);
+
+                if (changedInput === 'width' && targetWidth > 0) {
+                    newHeightInput.value = Math.round(targetWidth / aspectRatio) || '';
+                } else if (changedInput === 'height' && targetHeight > 0) {
+                    newWidthInput.value = Math.round(targetHeight * aspectRatio) || '';
+                }
+                updatePreview();
+            }
+
+            newWidthInput.addEventListener('input', () => updateDimensions('width'));
+            newHeightInput.addEventListener('input', () => updateDimensions('height'));
+            
+            maintainAspectRatioCheckbox.addEventListener('change', () => {
+                if (newWidthInput.value) { // If width has a value, recalculate height based on it
+                    updateDimensions('width');
+                } else if (newHeightInput.value) { // Else if height has a value, recalculate width
+                    updateDimensions('height');
+                } else { // If neither has a value, just update preview (e.g. original size)
+                    updatePreview();
+                }
+            });
+            
+            // Also update preview if any input field changes directly (for when aspect ratio is NOT maintained)
+            [newWidthInput, newHeightInput].forEach(input => {
+                input.addEventListener('input', () => {
+                    if (!maintainAspectRatioCheckbox.checked) {
+                        updatePreview();
+                    }
+                });
+            });
+
+
+            function updatePreview() {
+                if (!originalImage) return;
+
+                let targetWidth = parseInt(newWidthInput.value);
+                let targetHeight = parseInt(newHeightInput.value);
+
+                // If aspect ratio is maintained and one value is missing/invalid, calculate it
+                if (maintainAspectRatioCheckbox.checked && originalWidth > 0 && originalHeight > 0) {
+                    const aspectRatio = originalWidth / originalHeight;
+                    if ((isNaN(targetWidth) || targetWidth <= 0) && (!isNaN(targetHeight) && targetHeight > 0)) {
+                        targetWidth = Math.round(targetHeight * aspectRatio);
+                        // No need to update newWidthInput.value here to avoid event loop
+                    } else if ((!isNaN(targetWidth) && targetWidth > 0) && (isNaN(targetHeight) || targetHeight <= 0)) {
+                        targetHeight = Math.round(targetWidth / aspectRatio);
+                        // No need to update newHeightInput.value here to avoid event loop
+                    } else if ((!isNaN(targetWidth) && targetWidth > 0) && (!isNaN(targetHeight) && targetHeight > 0)) {
+                        // If both are filled and aspect ratio is checked, prioritize width and adjust height
+                        // This is handled by updateDimensions, but ensure consistency if called directly
+                        targetHeight = Math.round(targetWidth / aspectRatio);
+                    }
+                }
+
+                // Fallback to original dimensions if inputs are invalid or empty
+                if (isNaN(targetWidth) || targetWidth <= 0) targetWidth = originalWidth;
+                if (isNaN(targetHeight) || targetHeight <= 0) targetHeight = originalHeight;
+                
+                // Ensure dimensions are at least 1px
+                targetWidth = Math.max(1, targetWidth);
+                targetHeight = Math.max(1, targetHeight);
+
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+
+                ctx.drawImage(originalImage, 0, 0, targetWidth, targetHeight);
+
+                const previewType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(originalType) ? originalType : 'image/png';
+                try {
+                    imagePreview.src = canvas.toDataURL(previewType);
+                } catch (e) {
+                    console.error("Error generating preview data URL:", e);
+                    // Fallback to PNG if original type causes error (e.g., for very large images or specific formats)
+                    imagePreview.src = canvas.toDataURL('image/png');
+                }
+                
+
+                resizedDimensionsDisplay.textContent = `${targetWidth} x ${targetHeight} px`;
+                downloadButton.disabled = false;
+            }
+
+            downloadButton.addEventListener('click', () => {
+                if (!originalImage || !newWidthInput.value || !newHeightInput.value) return;
+
+                let targetWidth = parseInt(newWidthInput.value);
+                let targetHeight = parseInt(newHeightInput.value);
+
+                // Recalculate height if aspect ratio is maintained, to ensure final download respects it
+                if (maintainAspectRatioCheckbox.checked && originalWidth > 0 && originalHeight > 0) {
+                    const aspectRatio = originalWidth / originalHeight;
+                    if (targetWidth > 0) {
+                        targetHeight = Math.round(targetWidth / aspectRatio);
+                    }
+                }
+                
+                targetWidth = Math.max(1, targetWidth);
+                targetHeight = Math.max(1, targetHeight);
+
+                const format = outputFormatSelect.value;
+                const quality = format === 'image/jpeg' ? 0.9 : undefined; // Quality for JPEG, range 0.0 to 1.0
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(originalImage, 0, 0, targetWidth, targetHeight);
+
+                let dataUrl;
+                try {
+                    dataUrl = canvas.toDataURL(format, quality);
+                } catch (e) {
+                    console.error("Error generating download data URL:", e);
+                    alert("Error resizing image. The dimensions might be too large or the format unsupported for direct conversion. Try smaller dimensions or PNG format.");
+                    return;
+                }
+                
+                const link = document.createElement('a');
+                
+                let extension = format.split('/')[1];
+                if (extension === 'jpeg') extension = 'jpg'; // Common practice
+
+                link.href = dataUrl;
+                link.download = `${originalFileName}-resized.${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // Initial UI state
+            resetTool();
+        });
+    </script>
+</body>
+</html>
